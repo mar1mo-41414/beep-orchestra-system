@@ -1,0 +1,20 @@
+[package]
+name = "beep-convert"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Convert MIDI files into beep-orchestra cache format (future)"
+
+[[bin]]
+name = "beep-convert"
+path = "src/main.rs"
+
+[dependencies]
+beep-common = { path = "../beep-common" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+midly.workspace = true

@@ -1,0 +1,47 @@
+# 3 ノード構成 (nodeA / nodeB / nodeC) における nodeA 側の設定例。
+# 他のノードは `node_name` と `static_peers` を書き換えて同じテンプレを使う。
+
+node_name = "nodeA"
+master_mode = false
+listen_addr = "0.0.0.0"
+listen_port = 8642
+priority_algorithm = "highest"
+
+# multicast が届かない overlay (Tailscale / WireGuard など) 越しに繋ぐ場合、
+# 相手の HTTP エンドポイントを明示する。同一 LAN なら [discovery] を enabled=true
+# にして static_peers を空にしてよい。
+static_peers = [
+    "10.0.0.2:8642",   # nodeB
+    "10.0.0.3:8642",   # nodeC
+]
+static_peer_poll_ms = 3000
+
+[backend]
+command = "beep"
+extra_args = []
+dry_run = false
+min_duration_ms = 30
+# 20ms 未満だと同ピッチ連打の切れ目が耳で判別できない (人間の聴覚限界)。
+# バッチ内 `-D` にも使われるので刻みの分解能はほぼこの値で決まる。
+inter_note_gap_ms = 20
+# コイルスピーカーなど爆音ノードは gain_percent と pitch_shift_octaves で絞れる。
+# 例: gain_percent = 35, pitch_shift_octaves = -1
+gain_percent = 100
+pitch_shift_octaves = 0
+
+[discovery]
+# overlay 経由のときは multicast は届かないので無効化しておく。
+# 同一 L2 セグメントだけなら enabled = true にして static_peers は不要。
+enabled = false
+multicast_addr = "239.42.42.42"
+multicast_port = 4242
+announce_interval_ms = 1000
+
+[update]
+# OTA アップデート。本番で使うなら必ず chmod 0600 でこのファイルを保護し、
+# token は十分長いランダム文字列に置き換える。
+enabled = true
+token = "REPLACE_WITH_YOUR_SHARED_SECRET"
+binary_path = "/opt/beepd/beepd"
+restart_command = ["systemctl", "restart", "beepd"]
+verify_with_version = true

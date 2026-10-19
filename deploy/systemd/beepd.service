@@ -1,0 +1,21 @@
+[Unit]
+Description=beep-orchestra daemon
+Documentation=https://github.com/markun/beep-orchestra
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/beepd/beepd -c /etc/beepd/beepd.toml
+Restart=on-failure
+RestartSec=5
+User=root
+Environment=RUST_LOG=info,beepd::backend=debug
+# 標準出力/エラーを journal に流す
+StandardOutput=journal
+StandardError=journal
+# pcspkr が消えても即死しないように緩めのリソース制限
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

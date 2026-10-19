@@ -1,0 +1,12 @@
+# beep-player の設定例。プレイヤーは --config で読み込む。
+
+[backend]
+command = "beep"
+extra_args = []
+dry_run = false
+min_duration_ms = 30
+inter_note_gap_ms = 20
+
+# 同時発音時にどの音を採用するか
+# highest / lowest / first / last
+priority_algorithm = "highest"

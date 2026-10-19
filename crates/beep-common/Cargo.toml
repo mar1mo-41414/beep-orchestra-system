@@ -1,0 +1,17 @@
+[package]
+name = "beep-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared library for beep-orchestra: MIDI parsing, score, note selection"
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+midly.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

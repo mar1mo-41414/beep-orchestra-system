@@ -1,0 +1,16 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+*.swp
+.DS_Store
+.direnv/
+result
+result-*
+
+# ローカル設定
+/config.local.toml
+/*.local.toml
+
+# エディタ
+.vscode/
+.idea/

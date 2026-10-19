@@ -1,0 +1,20 @@
+# beepd の設定例
+
+node_name = "beep-node-01"
+master_mode = false
+listen_addr = "0.0.0.0"
+listen_port = 8642
+priority_algorithm = "highest"
+
+[backend]
+command = "beep"
+extra_args = []
+dry_run = false
+min_duration_ms = 30
+inter_note_gap_ms = 20
+
+[discovery]
+enabled = true
+multicast_addr = "239.42.42.42"
+multicast_port = 4242
+announce_interval_ms = 3000

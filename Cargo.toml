@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/beep-common",
+    "crates/beep-player",
+    "crates/beepd",
+    "crates/beep-convert",
+    "crates/beepctl",
+]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mar1mo-41414/beep-orchestra-system"
+rust-version = "1.75"
+
+[workspace.dependencies]
+anyhow = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+midly = "0.5"
+uuid = { version = "1", features = ["v4", "serde"] }
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["multipart"] }
+tower = "0.5"
+tower-http = { version = "0.5", features = ["trace", "limit"] }
+bytes = "1"
+humantime-serde = "1"
+time = { version = "0.3", features = ["serde-well-known"] }
+socket2 = { version = "0.5", features = ["all"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "multipart"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

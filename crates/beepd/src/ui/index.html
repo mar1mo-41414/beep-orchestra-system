@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>beep-orchestra</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0e0f13;
+  --panel: #1a1c22;
+  --panel2: #23262e;
+  --fg: #e6e8ee;
+  --muted: #8b909a;
+  --accent: #64b5f6;
+  --accent-hover: #90caf9;
+  --danger: #ef5350;
+  --warn: #ffb74d;
+  --ok: #66bb6a;
+  --border: #2b2e37;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  padding: 16px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans CJK JP", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+main {
+  max-width: 720px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 20px;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+h1 .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+h1 .dot.playing { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+h1 .dot.paused { background: var(--warn); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.panel h2 {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+.node-list { display: flex; flex-direction: column; gap: 4px; }
+.node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  user-select: none;
+}
+.node.dragging { opacity: 0.4; }
+.node[draggable="true"] .grip { cursor: grab; }
+.node.dragging .grip { cursor: grabbing; }
+.node .grip { color: var(--muted); font-size: 16px; }
+.node .name { font-weight: 500; flex: 1; }
+.node .name .self-tag {
+  color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 4px;
+}
+.node .voice {
+  color: var(--accent);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px;
+  min-width: 56px;
+  text-align: right;
+}
+.node .voice.off { color: var(--muted); }
+.node .meta {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+.node input[type=checkbox] { margin: 0; accent-color: var(--accent); cursor: pointer; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.file-drop {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  cursor: pointer;
+  display: block;
+  transition: border-color 0.15s, color 0.15s;
+}
+.file-drop.over, .file-drop:hover { border-color: var(--accent); color: var(--fg); }
+.file-drop .filename { color: var(--fg); font-weight: 500; }
+.controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+.field label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+.btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+button {
+  background: var(--accent);
+  color: #0e0f13;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+button:hover { background: var(--accent-hover); }
+button:disabled { background: var(--muted); cursor: not-allowed; opacity: 0.6; }
+button.stop { background: var(--danger); color: #fff; }
+button.stop:hover { filter: brightness(1.15); }
+button.secondary {
+  background: var(--panel2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+button.secondary:hover { background: var(--border); }
+.status {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.status .title { color: var(--fg); font-size: 14px; margin-right: 8px; }
+.status .num { color: var(--fg); }
+progress {
+  width: 100%;
+  height: 6px;
+  margin-top: 8px;
+  accent-color: var(--accent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.result {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--panel2);
+  padding: 10px;
+  border-radius: 4px;
+  color: var(--fg);
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+}
+.result.err { color: var(--danger); }
+.footer {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 12px;
+  font-family: ui-monospace, monospace;
+}
+</style>
+</head>
+<body>
+<main>
+<h1><span class="dot" id="stateDot"></span>beep-orchestra <span id="stateText" style="color:var(--muted); font-weight: 400; font-size: 13px;">idle</span></h1>
+
+<div class="panel">
+  <h2>MIDI</h2>
+  <label class="file-drop" id="fileDrop">
+    <input type="file" id="fileInput" accept=".mid,.midi" style="display:none">
+    <span id="fileLabel">クリックまたはドラッグして .mid を選択</span>
+  </label>
+</div>
+
+<div class="panel">
+  <h2>ノード ・ ドラッグで並べ替え = voice 順</h2>
+  <div class="node-list" id="nodeList"></div>
+  <div class="hint">チェック = 参加。上から voice 0 (メロディ), voice 1 (下パート), ...</div>
+</div>
+
+<div class="panel">
+  <h2>再生設定</h2>
+  <div class="controls">
+    <div class="field">
+      <label for="leadTime">lead time (秒)</label>
+      <input id="leadTime" type="number" min="0" max="10" step="0.5" value="3">
+    </div>
+    <div class="field">
+      <label for="voicing">voicing</label>
+      <select id="voicing">
+        <option value="pitch">pitch (最高音→voice 0)</option>
+        <option value="track">track (SMFトラック順)</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button id="playBtn">▶ 再生</button>
+    <button id="stopBtn" class="stop">■ 停止</button>
+    <button id="pauseBtn" class="secondary">‖ 一時停止</button>
+    <button id="resumeBtn" class="secondary">▶ 再開</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>ステータス</h2>
+  <div class="status" id="statusText">idle</div>
+  <progress id="progress" value="0" max="1"></progress>
+</div>
+
+<div class="panel" id="resultPanel" hidden>
+  <h2>直近の再生結果</h2>
+  <div class="result" id="resultText"></div>
+</div>
+
+<div class="footer" id="footerText">— beep-orchestra —</div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = {
+  nodes: [],
+  file: null,
+};
+
+async function refreshNodes() {
+  try {
+    const r = await fetch('/nodes');
+    const j = await r.json();
+    const incoming = [
+      { ...j.self_node, isSelf: true },
+      ...(j.peers || []).map(p => ({ ...p, isSelf: false })),
+    ];
+    const known = new Map(state.nodes.map(n => [n.uuid, n]));
+    let nextOrder = state.nodes.length;
+    const merged = incoming.map(n => {
+      const prev = known.get(n.uuid);
+      return {
+        uuid: n.uuid,
+        name: n.name,
+        isSelf: n.isSelf,
+        ip: n.ip,
+        http_port: n.http_port,
+        checked: prev ? prev.checked : true,
+        order: prev ? prev.order : (nextOrder++),
+      };
+    });
+    merged.sort((a, b) => a.order - b.order);
+    state.nodes = merged;
+    renderNodes();
+    $('footerText').textContent = `master: ${j.self_node.name} · ${incoming.length} nodes visible`;
+  } catch (e) {
+    console.warn('nodes fetch failed', e);
+  }
+}
+
+function renderNodes() {
+  const list = $('nodeList');
+  list.innerHTML = '';
+  let voiceIdx = 0;
+  state.nodes.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'node';
+    div.draggable = true;
+    div.dataset.uuid = n.uuid;
+    const voiceLabel = n.checked ? `voice ${voiceIdx++}` : '—';
+    const voiceClass = n.checked ? 'voice' : 'voice off';
+    const selfTag = n.isSelf ? '<span class="self-tag">(self)</span>' : '';
+    div.innerHTML = `
+      <span class="grip">☰</span>
+      <input type="checkbox" ${n.checked ? 'checked' : ''}>
+      <span class="name">${escapeHTML(n.name)}${selfTag}</span>
+      <span class="${voiceClass}">${voiceLabel}</span>
+      <span class="meta">${escapeHTML(n.ip)}:${n.http_port}</span>
+    `;
+    div.querySelector('input').addEventListener('change', (e) => {
+      n.checked = e.target.checked;
+      renderNodes();
+    });
+    div.addEventListener('dragstart', (e) => {
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', n.uuid);
+    });
+    div.addEventListener('dragend', () => div.classList.remove('dragging'));
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const dragging = list.querySelector('.dragging');
+      if (!dragging || dragging === div) return;
+      const rect = div.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      list.insertBefore(dragging, after ? div.nextSibling : div);
+    });
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const order = Array.from(list.children).map(el => el.dataset.uuid);
+      state.nodes.forEach(n2 => { n2.order = order.indexOf(n2.uuid); });
+      state.nodes.sort((a, b) => a.order - b.order);
+      renderNodes();
+    });
+    list.appendChild(div);
+  });
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+$('fileInput').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) setFile(f);
+});
+$('fileDrop').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  $('fileDrop').classList.add('over');
+});
+$('fileDrop').addEventListener('dragleave', () => $('fileDrop').classList.remove('over'));
+$('fileDrop').addEventListener('drop', (e) => {
+  e.preventDefault();
+  $('fileDrop').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+function setFile(f) {
+  state.file = f;
+  $('fileLabel').innerHTML =
+    `<span class="filename">${escapeHTML(f.name)}</span> ` +
+    `<span style="color:var(--muted); font-size:12px">${(f.size / 1024).toFixed(1)} KB</span>`;
+}
+
+$('playBtn').addEventListener('click', async () => {
+  if (!state.file) { alert('MIDI ファイルを選んでください'); return; }
+  const selected = state.nodes.filter(n => n.checked);
+  if (selected.length === 0) { alert('参加ノードを 1 つ以上選んでください'); return; }
+  const form = new FormData();
+  form.append('file', state.file);
+  form.append('lead_time_sec', $('leadTime').value);
+  form.append('voicing', $('voicing').value);
+  form.append('node_order', selected.map(n => n.name).join(','));
+  $('playBtn').disabled = true;
+  try {
+    const r = await fetch('/orchestra/play', { method: 'POST', body: form });
+    const j = await r.json();
+    $('resultPanel').hidden = false;
+    const rt = $('resultText');
+    rt.classList.toggle('err', !r.ok);
+    if (r.ok && j.outcomes) {
+      const startTime = new Date(j.start_at * 1000).toLocaleTimeString();
+      const rows = j.outcomes.map(o =>
+        `${String(o.voice_index).padStart(2)}: ${o.name.padEnd(12)} ` +
+        `${String(o.notes).padStart(4)} notes / ${o.duration_sec.toFixed(1)}s ` +
+        (o.ok ? '✓' : '✗ ' + (o.error || ''))
+      ).join('\n');
+      rt.textContent = `start_at: ${startTime}\n${rows}`;
+    } else {
+      rt.textContent = JSON.stringify(j, null, 2);
+    }
+  } catch (e) {
+    alert('再生開始失敗: ' + e.message);
+  } finally {
+    $('playBtn').disabled = false;
+  }
+});
+
+$('stopBtn').addEventListener('click', async () => {
+  try {
+    const r = await fetch('/stop_all', { method: 'POST' });
+    if (!r.ok) alert('stop_all HTTP ' + r.status);
+  } catch (e) {
+    alert('停止失敗: ' + e.message);
+  }
+});
+$('pauseBtn').addEventListener('click', () => fetch('/pause', { method: 'POST' }));
+$('resumeBtn').addEventListener('click', () => fetch('/resume', { method: 'POST' }));
+
+async function refreshStatus() {
+  try {
+    const r = await fetch('/status');
+    const j = await r.json();
+    const dot = $('stateDot');
+    dot.className = 'dot ' + j.state;
+    $('stateText').textContent = j.state;
+    if (j.state === 'idle') {
+      $('statusText').textContent = 'idle';
+      $('progress').value = 0;
+    } else {
+      $('statusText').innerHTML =
+        `<span class="title">${escapeHTML(j.title || '(untitled)')}</span> ` +
+        `<span class="num">${j.position_sec.toFixed(1)}s</span> / ` +
+        `<span class="num">${j.duration_sec.toFixed(1)}s</span> ` +
+        `(${j.notes} notes)`;
+      $('progress').max = j.duration_sec || 1;
+      $('progress').value = j.position_sec || 0;
+    }
+  } catch { /* ignore */ }
+}
+
+refreshNodes();
+refreshStatus();
+setInterval(refreshNodes, 5000);
+setInterval(refreshStatus, 500);
+</script>
+</body>
+</html>
